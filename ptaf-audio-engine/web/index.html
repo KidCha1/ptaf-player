@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PTAF Studio & Web Synthesizer</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #111827;
+      --card-bg: #1a2234;
+      --border: #2d3748;
+      --accent: #00e5ff;
+      --accent-hover: #00b4d8;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    .studio {
+      width: 100%;
+      max-width: 860px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .maker-pad {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pad-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .keys-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .row-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      width: 60px;
+    }
+
+    .key-btn {
+      background: #232d42;
+      border: 1px solid #3b4760;
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .key-btn:hover { background: #334155; border-color: var(--accent); }
+    .key-btn.sharp { background: #131a29; border-color: #334155; }
+    .key-btn.chord { background: #1e3a5f; color: #7dd3fc; border-color: #0284c7; }
+    .key-btn.meta { background: #2e263d; color: #d8b4fe; border-color: #7e22ce; }
+
+    textarea {
+      width: 100%;
+      height: 250px;
+      background: #080c14;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #38bdf8;
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 12px;
+      resize: vertical;
+      outline: none;
+      line-height: 1.4;
+    }
+
+    textarea:focus { border-color: var(--accent); }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-primary { background: #059669; color: #fff; }
+    .btn-primary:hover { background: #10b981; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #ef4444; }
+    .btn-secondary { background: #374151; color: #fff; }
+    .btn-secondary:hover { background: #4b5563; }
+
+    .status-bar {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      padding: 24px;
+      border-radius: 10px;
+      max-width: 540px;
+      line-height: 1.6;
+      border: 1px solid var(--border);
+    }
+
+    .modal-content h3 { margin-bottom: 12px; color: var(--accent); }
+    .modal-content ul { padding-left: 20px; margin-bottom: 18px; }
+  </style>
+</head>
+<body>
+
+  <div class="studio">
+    <div class="header">
+      <h2>PTAF Studio & Web Synthesizer</h2>
+      <div class="header-actions">
+        <button class="btn-secondary" id="tourBtn">Format Tour</button>
+        <button class="btn-secondary" id="exportBtn">Export .PTAF</button>
+      </div>
+    </div>
+
+    <!-- Note & Command Generator Pad -->
+    <div class="maker-pad">
+      <span class="pad-title">PTAF Generator Pad (Click to append into code)</span>
+      
+      <div class="keys-row">
+        <span class="row-label">Octaves:</span>
+        <button class="key-btn" onclick="insertCommand('note = C3')">C3</button>
+        <button class="key-btn" onclick="insertCommand('note = C4')">C4</button>
+        <button class="key-btn" onclick="insertCommand('note = C5')">C5</button>
+        <button class="key-btn" onclick="insertCommand('note = C6')">C6</button>
+        <button class="key-btn meta" onclick="insertCommand('tempo = 80')">Tempo 80</button>
+        <button class="key-btn meta" onclick="insertCommand('tempo = 120')">Tempo 120</button>
+      </div>
+
+      <div class="keys-row">
+        <span class="row-label">Notes:</span>
+        <button class="key-btn" onclick="insertCommand('note = C')">C</button>
+        <button class="key-btn sharp" onclick="insertCommand('note = C#')">C#</button>
+        <button class="key-btn" onclick="insertCommand('note = D')">D</button>
+        <button class="key-btn sharp" onclick="insertCommand('note = D#')">D#</button>
+        <button class="key-btn" onclick="insertCommand('note = E')">E</button>
+        <button class="key-btn" onclick="insertCommand('note = F')">F</button>
+        <button class="key-btn sharp" onclick="insertCommand('note = F#')">F#</button>
+        <button class="key-btn" onclick="insertCommand('note = G')">G</button>
+        <button class="key-btn sharp" onclick="insertCommand('note = G#')">G#</button>
+        <button class="key-btn" onclick="insertCommand('note = A')">A</button>
+        <button class="key-btn sharp" onclick="insertCommand('note = A#')">A#</button>
+        <button class="key-btn" onclick="insertCommand('note = B')">B</button>
+      </div>
+
+      <div class="keys-row">
+        <span class="row-label">Chords:</span>
+        <button class="key-btn chord" onclick="insertCommand('note = Cmaj')">Cmaj</button>
+        <button class="key-btn chord" onclick="insertCommand('note = Gmaj')">Gmaj</button>
+        <button class="key-btn chord" onclick="insertCommand('note = Fmaj')">Fmaj</button>
+        <button class="key-btn chord" onclick="insertCommand('note = Amin')">Amin</button>
+        <button class="key-btn chord" onclick="insertCommand('note = Dmin')">Dmin</button>
+        <button class="key-btn chord" onclick="insertCommand('note = Emin')">Emin</button>
+        <button class="key-btn meta" onclick="insertCommand('pitch = 440')">Pitch 440Hz</button>
+      </div>
+    </div>
+
+    <!-- Text Score Area -->
+    <textarea id="editor">* Full Range PTAF Track
+^
+tempo = 90
+* Bass octave notes
+note = C3
+note = G3
+* Major & minor triads
+note = Cmaj
+note = Amin
+note = Fmaj
+note = Gmaj
+* Polyphonic multi-octave chord
+note = C4E4G4C5
+* Raw pitch frequency
+pitch = 523.25
+^</textarea>
+
+    <!-- Controls -->
+    <div class="actions">
+      <button class="btn-primary" id="playBtn">▶ Play Score</button>
+      <button class="btn-danger" id="stopBtn">⏹ Stop</button>
+    </div>
+
+    <div class="status-bar">
+      <span id="statusText">Ready</span>
+      <span>Engine: Web Audio API Tri-Oscillator</span>
+    </div>
+  </div>
+
+  <!-- Format Tour Modal -->
+  <div class="modal" id="tourModal">
+    <div class="modal-content">
+      <h3>PTAF Format Tour</h3>
+      <ul>
+        <li><strong>* (Sticky Note):</strong> Ignored comments for track details or metadata.</li>
+        <li><strong>^ (File Bounds):</strong> Audio instructions are strictly executed between opening and closing carats.</li>
+        <li><strong>tempo = X:</strong> Adjusts speed in beats per minute.</li>
+        <li><strong>note = C3:</strong> Specifies octave alongside the note (defaults to octave 4).</li>
+        <li><strong>note = Cmaj / note = Amin:</strong> Plays full major and minor triads automatically.</li>
+        <li><strong>note = C4E4G4:</strong> Plays stacked polyphonic notes simultaneously across any octave.</li>
+        <li><strong>pitch = X:</strong> Direct oscillator pitch in Hertz (e.g., 440 or 523.25).</li>
+      </ul>
+      <button class="btn-primary" onclick="document.getElementById('tourModal').style.display='none'">Close Tour</button>
+    </div>
+  </div>
+
+  <script>
+    const SEMITONES = {
+      'C': 0, 'C#': 1, 'DB': 1,
+      'D': 2, 'D#': 3, 'EB': 3,
+      'E': 4,
+      'F': 5, 'F#': 6, 'GB': 6,
+      'G': 7, 'G#': 8, 'AB': 8,
+      'A': 9, 'A#': 10, 'BB': 10,
+      'B': 11
+    };
+
+    function midiToFreq(midi) {
+      return 440.0 * Math.pow(2.0, (midi - 69) / 12.0);
+    }
+
+    function parseNoteExpression(expr) {
+      const token = expr.trim();
+
+      // Check for named chords: Cmaj, Amin, F#maj3, Dmin5
+      const chordMatch = token.match(/^([A-G][#bB]?)([0-8])?(maj|min|m)$/i);
+      if (chordMatch) {
+        const rootName = chordMatch[1].toUpperCase();
+        const octave = chordMatch[2] ? parseInt(chordMatch[2]) : 4;
+        const flavor = chordMatch[3].toLowerCase();
+
+        if (rootName in SEMITONES) {
+          const rootMidi = (octave + 1) * 12 + SEMITONES[rootName];
+          const thirdInterval = (flavor === 'maj') ? 4 : 3;
+          return [
+            midiToFreq(rootMidi),
+            midiToFreq(rootMidi + thirdInterval),
+            midiToFreq(rootMidi + 7)
+          ];
+        }
+      }
+
+      // Check for single notes or stacked sequences: C3, C4E4G4, CEG
+      const matches = [...token.matchAll(/([A-G][#bB]?)([0-8])?/gi)];
+      const freqs = [];
+      matches.forEach(m => {
+        const name = m[1].toUpperCase();
+        const oct = m[2] ? parseInt(m[2]) : 4;
+        if (name in SEMITONES) {
+          const midi = (oct + 1) * 12 + SEMITONES[name];
+          freqs.push(midiToFreq(midi));
+        }
+      });
+
+      return freqs;
+    }
+
+    let audioCtx = null;
+    let activeNodes = [];
+
+    function insertCommand(cmd) {
+      const ed = document.getElementById('editor');
+      const val = ed.value;
+      const endIdx = val.lastIndexOf('^');
+      if (endIdx !== -1) {
+        ed.value = val.slice(0, endIdx) + cmd + "\n" + val.slice(endIdx);
+      } else {
+        ed.value += "\n" + cmd;
+      }
+    }
+
+    function stopPlayback() {
+      activeNodes.forEach(node => { try { node.stop(); } catch(e){} });
+      activeNodes = [];
+      document.getElementById('statusText').textContent = 'Stopped';
+    }
+
+    document.getElementById('stopBtn').addEventListener('click', stopPlayback);
+    document.getElementById('tourBtn').addEventListener('click', () => {
+      document.getElementById('tourModal').style.display = 'flex';
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const blob = new Blob([document.getElementById('editor').value], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'score.PTAF';
+      a.click();
+    });
+
+    document.getElementById('playBtn').addEventListener('click', () => {
+      stopPlayback();
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      const text = document.getElementById('editor').value;
+      const start = text.indexOf('^');
+      const end = text.lastIndexOf('^');
+      const content = (start !== -1 && end !== -1 && start !== end) ? text.slice(start + 1, end) : text;
+
+      const lines = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('*'));
+      let tempo = 120;
+      let beatSec = 60 / tempo;
+      let time = audioCtx.currentTime + 0.05;
+
+      lines.forEach(line => {
+        if (line.startsWith('tempo =')) {
+          tempo = parseFloat(line.split('=')[1].trim()) || 120;
+          beatSec = 60 / tempo;
+        } else if (line.startsWith('note =') || line.startsWith('pitch =')) {
+          let freqs = [];
+          if (line.startsWith('note =')) {
+            const raw = line.split('=')[1].trim();
+            freqs = parseNoteExpression(raw);
+          } else {
+            const rawVal = line.split('=')[1].trim();
+            freqs = rawVal.split(',').map(v => parseFloat(v.trim())).filter(n => !isNaN(n));
+          }
+
+          if (freqs.length > 0) {
+            freqs.forEach(f => {
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(f, time);
+
+              gain.gain.setValueAtTime(0.25 / freqs.length, time);
+              gain.gain.exponentialRampToValueAtTime(0.0001, time + (beatSec * 0.9));
+
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+
+              osc.start(time);
+              osc.stop(time + (beatSec * 0.9));
+              activeNodes.push(osc);
+            });
+            time += beatSec;
+          }
+        }
+      });
+
+      document.getElementById('statusText').textContent = 'Playing score...';
+    });
+  </script>
+</body>
+</html>
