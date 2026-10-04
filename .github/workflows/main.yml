@@ -1,0 +1,74 @@
+name: Build PTAF Universal Binaries
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.8.10 (Windows 7 Compatible)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8.10"
+      - name: Install Build Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install "pyinstaller<5.0" pygame
+      - name: Build Windows Executable
+        run: |
+          pyinstaller --windowed --onefile ptaf_player.py
+      - name: Upload Windows Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ptaf-windows7-plus
+          path: dist/ptaf_player.exe
+
+  build-macos:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.8.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8.10"
+      - name: Install Build Tools
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install pyinstaller pygame
+      - name: Build macOS App
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.14"
+        run: |
+          pyinstaller --windowed --onefile ptaf_player.py
+      - name: Upload macOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ptaf-macos10.14-plus
+          path: dist/ptaf_player.app
+
+  build-linux:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:buster
+    steps:
+      - name: Install Debian 10 Buster Toolchain
+        run: |
+          apt-get update
+          apt-get install -y python3 python3-pip python3-tk git libsdl2-mixer-2.0-0 binutils
+      - uses: actions/checkout@v4
+      - name: Install Build Tools
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install pyinstaller pygame
+      - name: Build Linux Binary
+        run: |
+          pyinstaller --onefile ptaf_player.py
+      - name: Upload Linux Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ptaf-linux-debian10-py37
+          path: dist/ptaf_player
